@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Debug artifacts
+debug-dump.txt
+
+# OS
+Thumbs.db
+.DS_Store

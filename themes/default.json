@@ -1,0 +1,26 @@
+{
+  "name": "default",
+  "label": "默认（亮）",
+  "vars": {
+    "--bg": "#ffffff",
+    "--bg-soft": "#f5f5f5",
+    "--bg-hover": "#ececec",
+    "--fg": "#333333",
+    "--fg-dim": "#888888",
+    "--accent": "#42b983",
+    "--accent-soft": "rgba(66, 185, 131, 0.15)",
+    "--border": "#e0e0e0",
+    "--shadow": "rgba(0, 0, 0, 0.12)",
+    "--crepe-color-background": "#ffffff",
+    "--crepe-color-on-background": "#333333",
+    "--crepe-color-surface": "#f5f5f5",
+    "--crepe-color-on-surface": "#333333",
+    "--crepe-color-primary": "#42b983",
+    "--crepe-color-secondary": "#e0e0e0",
+    "--crepe-color-outline": "#e0e0e0",
+    "--crepe-color-hover": "#ececec",
+    "--crepe-color-selected": "rgba(66, 185, 131, 0.15)",
+    "--crepe-color-inline-code": "#c7254e",
+    "--crepe-color-inline-area": "#f5f5f5"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "eyes-green",
+  "label": "护眼绿",
+  "vars": {
+    "--bg": "#f0f7f0",
+    "--bg-soft": "#e4efe4",
+    "--bg-hover": "#d6e7d6",
+    "--fg": "#2e4634",
+    "--fg-dim": "#7a9681",
+    "--accent": "#3a9a5c",
+    "--accent-soft": "rgba(58, 154, 92, 0.16)",
+    "--border": "#cddfce",
+    "--shadow": "rgba(46, 70, 52, 0.14)",
+    "--crepe-color-background": "#f0f7f0",
+    "--crepe-color-on-background": "#2e4634",
+    "--crepe-color-surface": "#e4efe4",
+    "--crepe-color-on-surface": "#2e4634",
+    "--crepe-color-primary": "#3a9a5c",
+    "--crepe-color-secondary": "#cddfce",
+    "--crepe-color-outline": "#cddfce",
+    "--crepe-color-hover": "#d6e7d6",
+    "--crepe-color-selected": "rgba(58, 154, 92, 0.16)",
+    "--crepe-color-inline-code": "#1f7a3d",
+    "--crepe-color-inline-area": "#e4efe4"
+  }
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="default">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MHReader</title>
+  </head>
+  <body>
+    <!-- 自定义标题栏 -->
+    <header id="titlebar">
+      <div id="menu-anchor">
+        <button id="hamburger" title="菜单">☰</button>
+        <nav id="menubar" class="hidden"></nav>
+      </div>
+      <div id="tabstrip" data-tauri-drag-region>
+        <div id="tabs" data-tauri-drag-region></div>
+        <button id="tab-new" title="新建 (Ctrl+N)">＋</button>
+      </div>
+      <div id="window-controls">
+        <button id="win-min" title="最小化">—</button>
+        <button id="win-max" title="最大化">▢</button>
+        <button id="win-close" title="关闭">✕</button>
+      </div>
+    </header>
+
+    <!-- 搜索条 -->
+    <div id="searchbar" class="hidden">
+      <input id="search-input" type="text" placeholder="搜索…" />
+      <span id="search-count">0/0</span>
+      <button id="search-prev" title="上一个 (Shift+Enter)">↑</button>
+      <button id="search-next" title="下一个 (Enter)">↓</button>
+      <button id="search-close" title="关闭 (Esc)">✕</button>
+    </div>
+
+    <!-- 主区域：大纲 + 编辑器 -->
+    <main id="workspace">
+      <aside id="outline"></aside>
+      <section id="editor-host">
+        <div id="editor-empty" class="hidden">Ctrl+N 新建，Ctrl+O 打开 Markdown 文件</div>
+        <div id="editor"></div>
+      </section>
+    </main>
+
+    <!-- 状态栏 -->
+    <footer id="statusbar">
+      <span id="status-file">未打开文件</span>
+      <span id="status-right">
+        <span id="zoom-controls">
+          <span id="zoom-label">100%</span>
+          <button id="zoom-out" title="缩小 (Ctrl+-)">−</button>
+          <button id="zoom-in" title="放大 (Ctrl+=)">＋</button>
+          <button id="zoom-reset" title="重置缩放 (Ctrl+0)">重置</button>
+        </span>
+        <span id="theme-label">default</span>
+      </span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

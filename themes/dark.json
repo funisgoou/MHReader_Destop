@@ -1,0 +1,26 @@
+{
+  "name": "dark",
+  "label": "暗夜",
+  "vars": {
+    "--bg": "#1e2126",
+    "--bg-soft": "#262a31",
+    "--bg-hover": "#31363f",
+    "--fg": "#d7dce2",
+    "--fg-dim": "#8a919c",
+    "--accent": "#4cc38a",
+    "--accent-soft": "rgba(76, 195, 138, 0.18)",
+    "--border": "#3a404a",
+    "--shadow": "rgba(0, 0, 0, 0.4)",
+    "--crepe-color-background": "#1e2126",
+    "--crepe-color-on-background": "#d7dce2",
+    "--crepe-color-surface": "#262a31",
+    "--crepe-color-on-surface": "#d7dce2",
+    "--crepe-color-primary": "#4cc38a",
+    "--crepe-color-secondary": "#3a404a",
+    "--crepe-color-outline": "#3a404a",
+    "--crepe-color-hover": "#31363f",
+    "--crepe-color-selected": "rgba(76, 195, 138, 0.18)",
+    "--crepe-color-inline-code": "#7ee2b0",
+    "--crepe-color-inline-area": "#262a31"
+  }
+}

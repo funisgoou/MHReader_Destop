@@ -1,0 +1,272 @@
+import {
+  mountEditor,
+  destroyEditor,
+  getMarkdown,
+  setReadonly,
+  onMarkdownUpdated,
+  onEditorReady,
+} from "./editor";
+import { openFileDialog, writeFile, saveFileDialog, readFile, fileName } from "./files";
+import { updateOutline, clearOutline } from "./outline";
+import { resetSearch } from "./search";
+
+export interface Tab {
+  id: string;
+  path: string | null;
+  name: string;
+  markdown: string;
+  savedMarkdown: string;
+  readonly: boolean;
+}
+
+const tabs: Tab[] = [];
+let activeId: string | null = null;
+let seq = 0;
+let suppressDirty = false;
+
+export function getTabs(): Tab[] {
+  return tabs;
+}
+
+export function getActiveTab(): Tab | null {
+  return tabs.find((t) => t.id === activeId) ?? null;
+}
+
+function isDirty(t: Tab): boolean {
+  return t.markdown !== t.savedMarkdown;
+}
+
+export function isActiveReadonly(): boolean {
+  return getActiveTab()?.readonly ?? false;
+}
+
+/* ---------------- 渲染 ---------------- */
+
+function renderTabs(): void {
+  const container = document.getElementById("tabs");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const n = tabs.length;
+
+  tabs.forEach((t) => {
+    const el = document.createElement("div");
+    el.className = "tab" + (t.id === activeId ? " active" : "");
+    el.title = t.path ?? t.name;
+
+    const name = document.createElement("span");
+    name.className = "tab-name";
+    name.textContent = t.name;
+    el.appendChild(name);
+
+    if (isDirty(t)) {
+      const dot = document.createElement("span");
+      dot.className = "tab-dirty";
+      dot.textContent = "●";
+      el.appendChild(dot);
+    }
+
+    const close = document.createElement("button");
+    close.className = "tab-close";
+    close.textContent = "✕";
+    close.title = "关闭 (Ctrl+W)";
+    close.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void closeTab(t.id);
+    });
+    el.appendChild(close);
+
+    el.addEventListener("click", () => void activateTab(t.id));
+    container.appendChild(el);
+  });
+
+  // 溢出时把当前标签滚动到可视区中间
+  const activeEl = container.querySelector(".tab.active");
+  activeEl?.scrollIntoView({ inline: "center", block: "nearest" });
+
+  const empty = document.getElementById("editor-empty");
+  empty?.classList.toggle("hidden", n > 0);
+}
+
+function renderStatus(): void {
+  const el = document.getElementById("status-file");
+  if (!el) return;
+  const t = getActiveTab();
+  if (!t) {
+    el.textContent = "未打开文件";
+    return;
+  }
+  const chars = t.markdown.replace(/\s/g, "").length;
+  const lines = t.markdown === "" ? 0 : t.markdown.split("\n").length;
+  el.textContent = `${t.name}${isDirty(t) ? " ●" : ""} · ${chars} 字 · ${lines} 行${t.readonly ? " · 只读" : ""}`;
+}
+
+function renderAll(): void {
+  renderTabs();
+  renderStatus();
+}
+
+/* ---------------- 标签操作 ---------------- */
+
+async function activateTab(id: string): Promise<void> {
+  if (id === activeId) return;
+  activeId = id;
+  const t = getActiveTab();
+  if (!t) return;
+  suppressDirty = true;
+  await mountEditor(t.markdown);
+  setReadonly(t.readonly);
+  suppressDirty = false;
+  updateOutline(t.markdown);
+  resetSearch();
+  renderAll();
+}
+
+export async function newTab(): Promise<void> {
+  const tab: Tab = {
+    id: `tab-${++seq}`,
+    path: null,
+    name: `未命名-${seq}.md`,
+    markdown: "",
+    savedMarkdown: "",
+    readonly: false,
+  };
+  tabs.push(tab);
+  activeId = tab.id;
+  suppressDirty = true;
+  await mountEditor("");
+  suppressDirty = false;
+  updateOutline("");
+  resetSearch();
+  renderAll();
+}
+
+export async function openFile(): Promise<void> {
+  const file = await openFileDialog();
+  if (!file) return;
+  await openPath(file.path, file.content, file.name);
+}
+
+export async function openPath(path: string, content: string, name?: string): Promise<void> {
+  const existing = tabs.find((t) => t.path === path);
+  if (existing) {
+    await activateTab(existing.id);
+    return;
+  }
+  const tab: Tab = {
+    id: `tab-${++seq}`,
+    path,
+    name: name ?? fileName(path),
+    markdown: content,
+    savedMarkdown: content,
+    readonly: false,
+  };
+  tabs.push(tab);
+  activeId = tab.id;
+  suppressDirty = true;
+  await mountEditor(content);
+  suppressDirty = false;
+  updateOutline(content);
+  resetSearch();
+  renderAll();
+}
+
+export async function closeTab(id: string): Promise<boolean> {
+  const idx = tabs.findIndex((t) => t.id === id);
+  if (idx === -1) return true;
+  const t = tabs[idx];
+  if (isDirty(t)) {
+    const ok = window.confirm(`「${t.name}」有未保存的更改，关闭将丢失这些更改。确定关闭？`);
+    if (!ok) return false;
+  }
+  tabs.splice(idx, 1);
+  if (activeId === id) {
+    activeId = null;
+    if (tabs.length > 0) {
+      await activateTab(tabs[Math.min(idx, tabs.length - 1)].id);
+    } else {
+      await destroyEditor();
+      clearOutline();
+      resetSearch();
+      renderAll();
+    }
+  } else {
+    renderAll();
+  }
+  return true;
+}
+
+export async function saveActive(): Promise<boolean> {
+  const t = getActiveTab();
+  if (!t) return false;
+  t.markdown = getMarkdown();
+  let path = t.path;
+  if (!path) {
+    path = await saveFileDialog(t.name);
+    if (!path) return false;
+    t.path = path;
+    t.name = fileName(path);
+  }
+  await writeFile(path, t.markdown);
+  t.savedMarkdown = t.markdown;
+  renderAll();
+  return true;
+}
+
+export async function saveActiveAs(): Promise<boolean> {
+  const t = getActiveTab();
+  if (!t) return false;
+  t.markdown = getMarkdown();
+  const path = await saveFileDialog(t.name);
+  if (!path) return false;
+  t.path = path;
+  t.name = fileName(path);
+  await writeFile(path, t.markdown);
+  t.savedMarkdown = t.markdown;
+  renderAll();
+  return true;
+}
+
+export function toggleReadonly(): void {
+  const t = getActiveTab();
+  if (!t) return;
+  t.readonly = !t.readonly;
+  setReadonly(t.readonly);
+  renderStatus();
+}
+
+/** 关闭窗口前检查未保存内容，全部确认后真正关闭 */
+export async function requestClose(): Promise<void> {
+  const dirty = tabs.filter((t) => isDirty(t));
+  if (dirty.length > 0) {
+    const names = dirty.map((t) => t.name).join("、");
+    const ok = window.confirm(`有 ${dirty.length} 个文件未保存（${names}），确定退出并丢弃更改？`);
+    if (!ok) return;
+  }
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().destroy();
+}
+
+/** 供命令行/拖拽等方式直接打开文件 */
+export async function openFileByPath(path: string): Promise<void> {
+  const file = await readFile(path);
+  await openPath(file.path, file.content, file.name);
+}
+
+/* ---------------- 初始化 ---------------- */
+
+export function initTabs(): void {
+  onMarkdownUpdated((md) => {
+    const t = getActiveTab();
+    if (!t || suppressDirty) return;
+    t.markdown = md;
+    renderTabs();
+    renderStatus();
+    updateOutline(md);
+  });
+  onEditorReady(() => {
+    renderStatus();
+  });
+  document.getElementById("tab-new")?.addEventListener("click", () => void newTab());
+  renderAll();
+}
