@@ -1,9 +1,19 @@
 import { Crepe } from "@milkdown/crepe";
 import { editorViewCtx } from "@milkdown/kit/core";
+import { callCommand } from "@milkdown/kit/utils";
+import type { $Command } from "@milkdown/kit/utils";
 import type { EditorView } from "@milkdown/prose/view";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { searchProsePlugin } from "./search";
 
 let crepe: Crepe | null = null;
+
+/** 当前文档所在目录（由 tabs 模块注入，用于解析相对路径图片） */
+let dirProvider: () => string | null = () => null;
+
+export function setDirProvider(fn: () => string | null): void {
+  dirProvider = fn;
+}
 
 const mdListeners = new Set<(markdown: string) => void>();
 const readyListeners = new Set<() => void>();
@@ -38,7 +48,66 @@ export async function mountEditor(markdown: string): Promise<void> {
     });
   });
   await crepe.create();
+  observeImages();
   for (const fn of readyListeners) fn();
+}
+
+/* ---------- 本地图片支持 ---------- */
+
+let imgObserver: MutationObserver | null = null;
+
+function resolveImageSrc(src: string): string | null {
+  if (!src) return null;
+  // 已是可加载的形式
+  if (/^(https?|data|blob|asset):/i.test(src)) return null;
+  if (src.startsWith("http://localhost") || src.startsWith("https://tauri")) return null;
+  let abs = src;
+  const isAbsolute = /^[a-zA-Z]:[\\/]/.test(src) || src.startsWith("\\\\") || src.startsWith("/");
+  if (!isAbsolute) {
+    const dir = dirProvider();
+    if (!dir) return null; // 未保存的新文档无法解析相对路径
+    abs = `${dir}\\${src}`;
+  }
+  return convertFileSrc(abs.replace(/\//g, "\\"));
+}
+
+function rewriteImages(container: HTMLElement): void {
+  container.querySelectorAll("img").forEach((img) => {
+    if (img.dataset.mhResolved) return;
+    const src = img.getAttribute("src") ?? "";
+    const resolved = resolveImageSrc(src);
+    if (resolved) {
+      img.dataset.mhResolved = "1";
+      img.src = resolved;
+    }
+  });
+}
+
+function observeImages(): void {
+  imgObserver?.disconnect();
+  imgObserver = null;
+  const root = document.getElementById("editor");
+  if (!root) return;
+  const run = () => rewriteImages(root);
+  imgObserver = new MutationObserver(run);
+  imgObserver.observe(root, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["src"],
+  });
+  run();
+}
+
+/* ---------- 命令执行（右键菜单用） ---------- */
+
+export function runCommand<T>(cmd: $Command<T>, payload?: T): boolean {
+  if (!crepe) return false;
+  try {
+    return crepe.editor.action(callCommand(cmd.key, payload)) as boolean;
+  } catch {
+    return false;
+  }
 }
 
 export async function destroyEditor(): Promise<void> {

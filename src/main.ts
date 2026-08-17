@@ -9,8 +9,11 @@ import { initTitlebar } from "./titlebar";
 import { initZoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 import { initMenu } from "./menu";
 import { initSearch, openSearch, closeSearch, isSearchOpen } from "./search";
-import { initTabs, newTab, openFile, saveActive, saveActiveAs, closeTab, getActiveTab, toggleReadonly, isActiveReadonly, requestClose } from "./tabs";
+import { initTabs, newTab, openFile, openFileByPath, saveActive, saveActiveAs, closeTab, getActiveTab, toggleReadonly, isActiveReadonly, requestClose } from "./tabs";
 import { toggleOutline, isOutlineCollapsed } from "./outline";
+import { initContextMenu } from "./contextmenu";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 function initShortcuts(): void {
   window.addEventListener("keydown", (e) => {
@@ -105,9 +108,20 @@ async function main(): Promise<void> {
     quit: () => void requestClose(),
   });
   initShortcuts();
+  initContextMenu();
 
-  // 默认新建一个空标签，避免空白启动
-  await newTab();
+  // 双击 .md 冷启动：打开启动参数里的文件；否则新建空标签
+  const pending = await invoke<string[]>("take_pending_files");
+  if (pending.length > 0) {
+    for (const f of pending) await openFileByPath(f);
+  } else {
+    await newTab();
+  }
+
+  // 双击 .md 时已有实例在运行：同窗口开新标签
+  await listen<string[]>("open-files", async (e) => {
+    for (const f of e.payload) await openFileByPath(f);
+  });
 }
 
 void main();

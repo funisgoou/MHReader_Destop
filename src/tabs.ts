@@ -5,6 +5,7 @@ import {
   setReadonly,
   onMarkdownUpdated,
   onEditorReady,
+  setDirProvider,
 } from "./editor";
 import { openFileDialog, writeFile, saveFileDialog, readFile, fileName } from "./files";
 import { updateOutline, clearOutline } from "./outline";
@@ -38,6 +39,14 @@ function isDirty(t: Tab): boolean {
 
 export function isActiveReadonly(): boolean {
   return getActiveTab()?.readonly ?? false;
+}
+
+/** 当前标签文件所在目录（用于解析相对路径图片）；未保存标签返回 null */
+export function getActiveFileDir(): string | null {
+  const t = getActiveTab();
+  if (!t?.path) return null;
+  const idx = Math.max(t.path.lastIndexOf("\\"), t.path.lastIndexOf("/"));
+  return idx > 0 ? t.path.slice(0, idx) : null;
 }
 
 /* ---------------- 渲染 ---------------- */
@@ -256,6 +265,7 @@ export async function openFileByPath(path: string): Promise<void> {
 /* ---------------- 初始化 ---------------- */
 
 export function initTabs(): void {
+  setDirProvider(getActiveFileDir);
   onMarkdownUpdated((md) => {
     const t = getActiveTab();
     if (!t || suppressDirty) return;

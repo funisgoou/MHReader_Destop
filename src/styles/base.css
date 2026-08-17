@@ -256,6 +256,18 @@ button {
   color: #fff !important;
 }
 
+/* ---------- 右键菜单 ---------- */
+#ctxmenu {
+  position: fixed;
+  z-index: 300;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px var(--shadow);
+  padding: 4px;
+  min-width: 170px;
+}
+
 /* ---------- 搜索条 ---------- */
 #searchbar {
   display: flex;
