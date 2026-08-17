@@ -11,6 +11,8 @@
 
 ### 主题 JSON 格式
 
+也支持直接迁移 **Typora 主题**：把 Typora 的 `.css` 主题文件放进 `themes` 文件夹即可（无需改名），应用会把 Typora 的 `#write` 等选择器自动映射到编辑器 DOM。字体、颜色、标题样式等大部分规则可直接生效；个别依赖 Typora 专有结构的细节可能需要手工微调。
+
 ```json
 {
   "name": "my-theme",

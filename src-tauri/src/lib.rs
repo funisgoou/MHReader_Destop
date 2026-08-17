@@ -33,9 +33,10 @@ fn take_pending_files() -> Vec<String> {
     std::mem::take(&mut *PENDING_FILES.lock().unwrap())
 }
 
-/// 读取 exe 同级 themes 目录下的用户自定义主题（*.json），返回文件内容列表
+/// 读取 exe 同级 themes 目录下的用户自定义主题
+/// 返回 (文件名, 内容) 列表；支持 .json（CSS 变量）与 .css（Typora 风格）
 #[tauri::command]
-fn read_user_themes() -> Vec<String> {
+fn read_user_themes() -> Vec<(String, String)> {
     let mut out = Vec::new();
     let Ok(exe) = std::env::current_exe() else { return out };
     let Some(dir) = exe.parent().map(|p| p.join("themes")) else {
@@ -44,9 +45,13 @@ fn read_user_themes() -> Vec<String> {
     let Ok(entries) = fs::read_dir(dir) else { return out };
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) == Some("json") {
-            if let Ok(content) = fs::read_to_string(&path) {
-                out.push(content);
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if ext == "json" || ext == "css" {
+            if let (Ok(content), Some(name)) = (
+                fs::read_to_string(&path),
+                path.file_name().and_then(|n| n.to_str()),
+            ) {
+                out.push((name.to_string(), content));
             }
         }
     }
