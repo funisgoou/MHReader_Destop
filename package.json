@@ -15,7 +15,8 @@
     "@milkdown/prose": "^7.10.0",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
-    "@tauri-apps/plugin-fs": "^2.0.0"
+    "@tauri-apps/plugin-fs": "^2.0.0",
+    "mermaid": "^11.16.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

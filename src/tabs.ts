@@ -10,6 +10,7 @@ import {
 import { openFileDialog, writeFile, saveFileDialog, readFile, fileName } from "./files";
 import { updateOutline, clearOutline } from "./outline";
 import { resetSearch } from "./search";
+import { transformHtmlImages } from "./markdownFix";
 
 export interface Tab {
   id: string;
@@ -162,20 +163,21 @@ export async function openPath(path: string, content: string, name?: string): Pr
     await activateTab(existing.id);
     return;
   }
+  const fixed = transformHtmlImages(content);
   const tab: Tab = {
     id: `tab-${++seq}`,
     path,
     name: name ?? fileName(path),
-    markdown: content,
-    savedMarkdown: content,
+    markdown: fixed,
+    savedMarkdown: fixed,
     readonly: false,
   };
   tabs.push(tab);
   activeId = tab.id;
   suppressDirty = true;
-  await mountEditor(content);
+  await mountEditor(fixed);
   suppressDirty = false;
-  updateOutline(content);
+  updateOutline(fixed);
   resetSearch();
   renderAll();
 }

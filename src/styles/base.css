@@ -526,6 +526,21 @@ button {
   opacity: 0.18;
 }
 
+/* Mermaid 架构图 */
+#editor .milkdown .mermaid-diagram {
+  margin: 0.8em 0;
+  text-align: center;
+}
+
+#editor .milkdown .mermaid-diagram svg {
+  max-width: 100%;
+}
+
+#editor .milkdown .mermaid-diagram.mermaid-error {
+  color: #c0392b;
+  font-size: 0.9em;
+}
+
 
 /* ---------- 状态栏 ---------- */
 #statusbar {

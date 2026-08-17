@@ -5,6 +5,7 @@ import type { $Command } from "@milkdown/kit/utils";
 import type { EditorView } from "@milkdown/prose/view";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { searchProsePlugin } from "./search";
+import { mermaidProsePlugin } from "./mermaid";
 
 let crepe: Crepe | null = null;
 
@@ -42,6 +43,7 @@ export async function mountEditor(markdown: string): Promise<void> {
 
   crepe = new Crepe({ root, defaultValue: markdown });
   crepe.editor.use(searchProsePlugin);
+  crepe.editor.use(mermaidProsePlugin);
   crepe.on((listener) => {
     listener.markdownUpdated((_ctx, md) => {
       for (const fn of mdListeners) fn(md);

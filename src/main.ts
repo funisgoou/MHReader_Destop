@@ -122,6 +122,16 @@ async function main(): Promise<void> {
   await listen<string[]>("open-files", async (e) => {
     for (const f of e.payload) await openFileByPath(f);
   });
+
+  // 拖拽 .md 文件到窗口打开
+  const { getCurrentWebview } = await import("@tauri-apps/api/webview");
+  await getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type === "drop") {
+      for (const p of event.payload.paths) {
+        if (/\.(md|markdown|mdown|txt)$/i.test(p)) void openFileByPath(p);
+      }
+    }
+  });
 }
 
 void main();
