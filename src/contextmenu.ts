@@ -15,6 +15,13 @@ import {
   insertImageCommand,
 } from "@milkdown/kit/preset/commonmark";
 import { toggleStrikethroughCommand, insertTableCommand } from "@milkdown/kit/preset/gfm";
+import {
+  addRowBeforeCommand,
+  addRowAfterCommand,
+  addColBeforeCommand,
+  addColAfterCommand,
+  deleteSelectedCellsCommand,
+} from "@milkdown/kit/preset/gfm";
 import { setBlockTypeCommand } from "@milkdown/kit/preset/commonmark";
 
 interface CtxItem {
@@ -103,6 +110,16 @@ function insertLink(): void {
   });
 }
 
+function insertTable(): void {
+  void askInput("表格行列", "如 3x4（3 行 4 列）", "3x3").then((input) => {
+    if (!input) return;
+    const m = /(\d+)\s*[x×*]\s*(\d+)/i.exec(input.trim());
+    const row = m ? Math.min(50, Math.max(1, Number(m[1]))) : 3;
+    const col = m ? Math.min(20, Math.max(1, Number(m[2]))) : 3;
+    runCommand(insertTableCommand, { row, col });
+  });
+}
+
 function buildItems(): CtxItem[] {
   return [
     { label: "剪切", shortcut: "Ctrl+X", enabled: hasSelection, action: () => void cut() },
@@ -139,13 +156,24 @@ function buildItems(): CtxItem[] {
     {
       label: "插入",
       children: [
-        { label: "表格", action: () => runCommand(insertTableCommand) },
+        { label: "表格…", action: insertTable },
         { label: "代码块", action: () => runCommand(createCodeBlockCommand) },
         { label: "水平分割线", action: () => runCommand(insertHrCommand) },
         { label: "图片…", action: () => void insertImage() },
         { sep: true },
         { label: "段落（上方）", action: () => insertParagraph("above") },
         { label: "段落（下方）", action: () => insertParagraph("below") },
+      ],
+    },
+    {
+      label: "表格",
+      children: [
+        { label: "上方插入行", action: () => runCommand(addRowBeforeCommand) },
+        { label: "下方插入行", action: () => runCommand(addRowAfterCommand) },
+        { label: "左侧插入列", action: () => runCommand(addColBeforeCommand) },
+        { label: "右侧插入列", action: () => runCommand(addColAfterCommand) },
+        { sep: true },
+        { label: "删除所选行列", action: () => runCommand(deleteSelectedCellsCommand) },
       ],
     },
   ];

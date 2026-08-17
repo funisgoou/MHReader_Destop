@@ -123,15 +123,33 @@ function renderAll(): void {
 
 /* ---------------- 标签操作 ---------------- */
 
+/**
+ * 挂载编辑器并对齐保存基线。
+ * Crepe 挂载后可能对文档做规范化并异步触发一次 markdownUpdated，
+ * 导致未编辑的文件被误标脏；延迟把基线对齐到挂载后的实际内容。
+ */
+async function remount(markdown: string): Promise<void> {
+  suppressDirty = true;
+  await mountEditor(markdown);
+  window.setTimeout(() => {
+    const t = getActiveTab();
+    if (t) {
+      const current = getMarkdown();
+      t.markdown = current;
+      t.savedMarkdown = current;
+      renderAll();
+    }
+    suppressDirty = false;
+  }, 250);
+}
+
 async function activateTab(id: string): Promise<void> {
   if (id === activeId) return;
   activeId = id;
   const t = getActiveTab();
   if (!t) return;
-  suppressDirty = true;
-  await mountEditor(t.markdown);
+  await remount(t.markdown);
   setReadonly(t.readonly);
-  suppressDirty = false;
   updateOutline(t.markdown);
   resetSearch();
   renderAll();
@@ -148,9 +166,7 @@ export async function newTab(): Promise<void> {
   };
   tabs.push(tab);
   activeId = tab.id;
-  suppressDirty = true;
-  await mountEditor("");
-  suppressDirty = false;
+  await remount("");
   updateOutline("");
   resetSearch();
   renderAll();
@@ -179,9 +195,7 @@ export async function openPath(path: string, content: string, name?: string): Pr
   };
   tabs.push(tab);
   activeId = tab.id;
-  suppressDirty = true;
-  await mountEditor(fixed);
-  suppressDirty = false;
+  await remount(fixed);
   updateOutline(fixed);
   resetSearch();
   renderAll();
