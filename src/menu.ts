@@ -5,8 +5,11 @@ import { themes } from "./theme";
 export interface MenuActions {
   newFile: () => void;
   openFile: () => void;
+  recentFiles: () => string[];
+  openRecent: (path: string) => void;
   save: () => void;
   saveAs: () => void;
+  exportHtml: () => void;
   closeTab: () => void;
   find: () => void;
   toggleReadonly: () => void;
@@ -38,9 +41,20 @@ function buildItems(a: MenuActions): Item[] {
       children: [
         { label: "新建", shortcut: "Ctrl+N", action: a.newFile },
         { label: "打开…", shortcut: "Ctrl+O", action: a.openFile },
+        {
+          label: "最近打开",
+          children:
+            a.recentFiles().length > 0
+              ? a.recentFiles().map((p) => ({
+                  label: p.split(/[\\/]/).pop() ?? p,
+                  action: () => a.openRecent(p),
+                }))
+              : [{ label: "（空）", action: () => undefined }],
+        },
         { sep: true },
         { label: "保存", shortcut: "Ctrl+S", action: a.save },
         { label: "另存为…", shortcut: "Ctrl+Shift+S", action: a.saveAs },
+        { label: "导出为 HTML…", action: a.exportHtml },
         { sep: true },
         { label: "关闭标签", shortcut: "Ctrl+W", action: a.closeTab },
         { label: "退出", action: a.quit },
@@ -59,7 +73,7 @@ function buildItems(a: MenuActions): Item[] {
     {
       label: "视图",
       children: [
-        { label: "大纲", shortcut: "Ctrl+B", checked: a.isOutlineOpen, action: a.toggleOutline },
+        { label: "大纲", shortcut: "Ctrl+Shift+B", checked: a.isOutlineOpen, action: a.toggleOutline },
         { sep: true },
         { label: "放大", shortcut: "Ctrl+=", action: a.zoomIn },
         { label: "缩小", shortcut: "Ctrl+-", action: a.zoomOut },

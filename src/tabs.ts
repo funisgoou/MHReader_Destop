@@ -88,6 +88,13 @@ function renderTabs(): void {
     el.appendChild(close);
 
     el.addEventListener("click", () => void activateTab(t.id));
+    // 中键关闭
+    el.addEventListener("auxclick", (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        void closeTab(t.id);
+      }
+    });
     container.appendChild(el);
   });
 
@@ -185,6 +192,7 @@ export async function openPath(path: string, content: string, name?: string): Pr
     return;
   }
   const fixed = transformHtmlImages(content);
+  recordRecentFile(path);
   const tab: Tab = {
     id: `tab-${++seq}`,
     path,
@@ -244,6 +252,7 @@ export async function saveActive(): Promise<boolean> {
   }
   await writeFile(path, t.markdown);
   t.savedMarkdown = t.markdown;
+  recordRecentFile(path);
   renderAll();
   return true;
 }
@@ -258,6 +267,7 @@ export async function saveActiveAs(): Promise<boolean> {
   t.name = fileName(path);
   await writeFile(path, t.markdown);
   t.savedMarkdown = t.markdown;
+  recordRecentFile(path);
   renderAll();
   return true;
 }
@@ -290,6 +300,44 @@ export async function requestClose(): Promise<void> {
 export async function openFileByPath(path: string): Promise<void> {
   const file = await readFile(path);
   await openPath(file.path, file.content, file.name);
+}
+
+/** 切换相邻标签（Ctrl+Tab / Ctrl+Shift+Tab） */
+export async function activateAdjacentTab(delta: 1 | -1): Promise<void> {
+  if (tabs.length < 2) return;
+  const idx = tabs.findIndex((t) => t.id === activeId);
+  const next = tabs[(idx + delta + tabs.length) % tabs.length];
+  await activateTab(next.id);
+}
+
+/* ---------------- 最近打开文件 ---------------- */
+
+const RECENT_KEY = "mhreader.recentFiles";
+const RECENT_MAX = 8;
+
+export function getRecentFiles(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const arr: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? (arr.filter((x) => typeof x === "string") as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordRecentFile(path: string): void {
+  const list = getRecentFiles().filter((p) => p !== path);
+  list.unshift(path);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+}
+
+/** 打开最近文件（不存在则移除该条并提示） */
+export async function openRecentFile(path: string): Promise<void> {
+  try {
+    await openFileByPath(path);
+  } catch {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(getRecentFiles().filter((p) => p !== path)));
+  }
 }
 
 /* ---------------- 初始化 ---------------- */

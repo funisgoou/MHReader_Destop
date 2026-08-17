@@ -9,9 +9,12 @@ import { initTitlebar } from "./titlebar";
 import { initZoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 import { initMenu } from "./menu";
 import { initSearch, openSearch, closeSearch, isSearchOpen } from "./search";
-import { initTabs, newTab, openFile, openFileByPath, saveActive, saveActiveAs, closeTab, getActiveTab, toggleReadonly, isActiveReadonly, requestClose } from "./tabs";
-import { toggleOutline, isOutlineCollapsed } from "./outline";
-import { initContextMenu } from "./contextmenu";
+import { initTabs, newTab, openFile, openFileByPath, saveActive, saveActiveAs, closeTab, getActiveTab, getRecentFiles, openRecentFile, activateAdjacentTab, toggleReadonly, isActiveReadonly, requestClose } from "./tabs";
+import { toggleOutline, isOutlineCollapsed, initOutlineTracking, syncOutlineActive } from "./outline";
+import { initContextMenu, editorActions } from "./contextmenu";
+import { exportHtml } from "./exportHtml";
+import { runCommand, onEditorReady } from "./editor";
+import { wrapInHeadingCommand, createCodeBlockCommand } from "@milkdown/kit/preset/commonmark";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
@@ -24,6 +27,21 @@ function initShortcuts(): void {
     }
     const key = e.key.toLowerCase();
     const active = getActiveTab();
+    // 输入框/对话框内不触发全局快捷键
+    const target = e.target as HTMLElement | null;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+    // Ctrl+Tab 切换标签
+    if (key === "tab") {
+      e.preventDefault();
+      void activateAdjacentTab(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // Ctrl+1..6 标题级别（Typora 风格）
+    if (/^[1-6]$/.test(e.key) && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      runCommand(wrapInHeadingCommand, Number(e.key));
+      return;
+    }
     switch (true) {
       case key === "n":
         e.preventDefault();
@@ -49,9 +67,25 @@ function initShortcuts(): void {
         e.preventDefault();
         if (active) openSearch();
         break;
-      case key === "b":
+      case key === "b" && e.shiftKey:
         e.preventDefault();
         toggleOutline();
+        break;
+      case key === "t" && !e.shiftKey:
+        e.preventDefault();
+        void editorActions.insertTable();
+        break;
+      case key === "k" && e.shiftKey:
+        e.preventDefault();
+        runCommand(createCodeBlockCommand);
+        break;
+      case key === "k":
+        e.preventDefault();
+        editorActions.insertLink();
+        break;
+      case key === "i" && e.shiftKey:
+        e.preventDefault();
+        void editorActions.insertImage();
         break;
       case e.key === "=" || e.key === "+":
         e.preventDefault();
@@ -86,8 +120,11 @@ async function main(): Promise<void> {
   initMenu({
     newFile: () => void newTab(),
     openFile: () => void openFile(),
+    recentFiles: getRecentFiles,
+    openRecent: (p) => void openRecentFile(p),
     save: () => void saveActive(),
     saveAs: () => void saveActiveAs(),
+    exportHtml: () => void exportHtml(),
     closeTab: () => {
       const t = getActiveTab();
       if (t) void closeTab(t.id);
@@ -109,6 +146,8 @@ async function main(): Promise<void> {
   });
   initShortcuts();
   initContextMenu();
+  initOutlineTracking();
+  onEditorReady(() => syncOutlineActive());
 
   // 双击 .md 冷启动：打开启动参数里的文件；否则新建空标签
   const pending = await invoke<string[]>("take_pending_files");

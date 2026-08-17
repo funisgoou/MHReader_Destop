@@ -41,7 +41,13 @@ export async function mountEditor(markdown: string): Promise<void> {
   if (!root) return;
   root.innerHTML = "";
 
-  crepe = new Crepe({ root, defaultValue: markdown });
+  crepe = new Crepe({
+    root,
+    defaultValue: markdown,
+    featureConfigs: {
+      [Crepe.Feature.Placeholder]: { text: "请输入…", mode: "doc" },
+    },
+  });
   crepe.editor.use(searchProsePlugin);
   crepe.editor.use(mermaidProsePlugin);
   crepe.on((listener) => {

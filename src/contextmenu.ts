@@ -110,15 +110,21 @@ function insertLink(): void {
   });
 }
 
-function insertTable(): void {
-  void askInput("表格行列", "如 3x4（3 行 4 列）", "3x3").then((input) => {
-    if (!input) return;
-    const m = /(\d+)\s*[x×*]\s*(\d+)/i.exec(input.trim());
-    const row = m ? Math.min(50, Math.max(1, Number(m[1]))) : 3;
-    const col = m ? Math.min(20, Math.max(1, Number(m[2]))) : 3;
-    runCommand(insertTableCommand, { row, col });
-  });
+async function insertTable(): Promise<void> {
+  const input = await askInput("表格行列", "如 3x4（3 行 4 列）", "3x3");
+  if (!input) return;
+  const m = /(\d+)\s*[x×*]\s*(\d+)/i.exec(input.trim());
+  const row = m ? Math.min(50, Math.max(1, Number(m[1]))) : 3;
+  const col = m ? Math.min(20, Math.max(1, Number(m[2]))) : 3;
+  runCommand(insertTableCommand, { row, col });
 }
+
+/** 供菜单/快捷键复用 */
+export const editorActions = {
+  insertTable,
+  insertImage,
+  insertLink,
+};
 
 function buildItems(): CtxItem[] {
   return [
