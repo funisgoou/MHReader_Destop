@@ -1,5 +1,6 @@
 import { getView, runCommand } from "./editor";
 import { open } from "@tauri-apps/plugin-dialog";
+import { askInput } from "./dialog";
 import {
   toggleStrongCommand,
   toggleEmphasisCommand,
@@ -97,9 +98,9 @@ async function insertImage(): Promise<void> {
 }
 
 function insertLink(): void {
-  const href = window.prompt("链接地址：", "https://");
-  if (!href) return;
-  runCommand(toggleLinkCommand, { href });
+  void askInput("链接地址", "https://").then((href) => {
+    if (href) runCommand(toggleLinkCommand, { href });
+  });
 }
 
 function buildItems(): CtxItem[] {

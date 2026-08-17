@@ -11,6 +11,7 @@ import { openFileDialog, writeFile, saveFileDialog, readFile, fileName } from ".
 import { updateOutline, clearOutline } from "./outline";
 import { resetSearch } from "./search";
 import { transformHtmlImages } from "./markdownFix";
+import { askSave } from "./dialog";
 
 export interface Tab {
   id: string;
@@ -25,6 +26,7 @@ const tabs: Tab[] = [];
 let activeId: string | null = null;
 let seq = 0;
 let suppressDirty = false;
+let lastScrolledActiveId: string | null = null;
 
 export function getTabs(): Tab[] {
   return tabs;
@@ -59,8 +61,7 @@ function renderTabs(): void {
 
   const n = tabs.length;
 
-  tabs.forEach((t) => {
-    const el = document.createElement("div");
+  tabs.forEach((t) => {    const el = document.createElement("div");
     el.className = "tab" + (t.id === activeId ? " active" : "");
     el.title = t.path ?? t.name;
 
@@ -90,9 +91,12 @@ function renderTabs(): void {
     container.appendChild(el);
   });
 
-  // 溢出时把当前标签滚动到可视区中间
-  const activeEl = container.querySelector(".tab.active");
-  activeEl?.scrollIntoView({ inline: "center", block: "nearest" });
+  // 仅在切换标签时滚动定位，避免每次输入都触发滚动闪烁
+  if (activeId !== lastScrolledActiveId) {
+    lastScrolledActiveId = activeId;
+    const activeEl = container.querySelector(".tab.active");
+    activeEl?.scrollIntoView({ inline: "center", block: "nearest" });
+  }
 
   const empty = document.getElementById("editor-empty");
   empty?.classList.toggle("hidden", n > 0);
@@ -108,7 +112,8 @@ function renderStatus(): void {
   }
   const chars = t.markdown.replace(/\s/g, "").length;
   const lines = t.markdown === "" ? 0 : t.markdown.split("\n").length;
-  el.textContent = `${t.name}${isDirty(t) ? " ●" : ""} · ${chars} 字 · ${lines} 行${t.readonly ? " · 只读" : ""}`;
+  const dirty = isDirty(t) ? " · 未保存" : "";
+  el.textContent = `${t.name}${dirty} · ${chars} 字 · ${lines} 行${t.readonly ? " · 只读" : ""}`;
 }
 
 function renderAll(): void {
@@ -187,8 +192,13 @@ export async function closeTab(id: string): Promise<boolean> {
   if (idx === -1) return true;
   const t = tabs[idx];
   if (isDirty(t)) {
-    const ok = window.confirm(`「${t.name}」有未保存的更改，关闭将丢失这些更改。确定关闭？`);
-    if (!ok) return false;
+    const r = await askSave(t.name);
+    if (r === "cancel") return false;
+    if (r === "save") {
+      if (t.id !== activeId) await activateTab(t.id);
+      const ok = await saveActive();
+      if (!ok) return false; // 另存对话框被取消
+    }
   }
   tabs.splice(idx, 1);
   if (activeId === id) {
@@ -246,13 +256,17 @@ export function toggleReadonly(): void {
   renderStatus();
 }
 
-/** 关闭窗口前检查未保存内容，全部确认后真正关闭 */
+/** 关闭窗口前逐个询问未保存文件，全部处理完才真正退出 */
 export async function requestClose(): Promise<void> {
   const dirty = tabs.filter((t) => isDirty(t));
-  if (dirty.length > 0) {
-    const names = dirty.map((t) => t.name).join("、");
-    const ok = window.confirm(`有 ${dirty.length} 个文件未保存（${names}），确定退出并丢弃更改？`);
-    if (!ok) return;
+  for (const t of dirty) {
+    if (t.id !== activeId) await activateTab(t.id);
+    const r = await askSave(t.name);
+    if (r === "cancel") return;
+    if (r === "save") {
+      const ok = await saveActive();
+      if (!ok) return; // 另存对话框被取消
+    }
   }
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   await getCurrentWindow().destroy();

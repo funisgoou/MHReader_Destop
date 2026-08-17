@@ -256,6 +256,85 @@ button {
   color: #fff !important;
 }
 
+/* ---------- 模态对话框 ---------- */
+.dlg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dlg-box {
+  min-width: 340px;
+  max-width: 480px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px var(--shadow);
+  padding: 18px 20px 16px;
+}
+
+.dlg-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.dlg-message {
+  color: var(--fg-dim);
+  line-height: 1.6;
+  white-space: pre-line;
+  margin-bottom: 16px;
+}
+
+.dlg-input {
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+
+.dlg-input:focus {
+  border-color: var(--accent);
+}
+
+.dlg-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dlg-btn {
+  min-width: 72px;
+  padding: 6px 16px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--fg);
+}
+
+.dlg-btn:hover {
+  background: var(--bg-hover);
+}
+
+.dlg-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.dlg-btn.primary:hover {
+  filter: brightness(1.08);
+}
+
 /* ---------- 右键菜单 ---------- */
 #ctxmenu {
   position: fixed;
