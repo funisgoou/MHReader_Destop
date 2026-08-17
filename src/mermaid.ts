@@ -18,6 +18,16 @@ function initMermaid(): void {
     startOnLoad: false,
     securityLevel: "loose",
     theme: currentMermaidTheme(),
+    // 与应用一致的字体，避免文字度量与显示不一致导致溢出/压线
+    fontFamily: '"Segoe UI", "Microsoft YaHei", system-ui, sans-serif',
+    flowchart: {
+      // 不拉伸到容器整宽，保持自然尺寸
+      useMaxWidth: false,
+      htmlLabels: true,
+    },
+    sequence: {
+      useMaxWidth: false,
+    },
   });
 }
 

@@ -530,10 +530,25 @@ button {
 #editor .milkdown .mermaid-diagram {
   margin: 0.8em 0;
   text-align: center;
+  overflow-x: auto;
+  /* 中和编辑区排版样式：mermaid 按 body 默认环境度量文字，
+     继承大字号/大行高会导致文字溢出节点 */
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+#editor .milkdown .mermaid-diagram p,
+#editor .milkdown .mermaid-diagram div,
+#editor .milkdown .mermaid-diagram span {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: 1.2;
 }
 
 #editor .milkdown .mermaid-diagram svg {
   max-width: 100%;
+  height: auto;
 }
 
 #editor .milkdown .mermaid-diagram.mermaid-error {
