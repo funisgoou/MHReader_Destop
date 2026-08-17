@@ -78,7 +78,7 @@ async function about(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  initTheme();
+  await initTheme();
   initTitlebar();
   initZoom();
   initTabs();

@@ -1,0 +1,15 @@
+{
+  "name": "my-theme",
+  "label": "我的主题",
+  "vars": {
+    "--bg": "#fdf6e3",
+    "--bg-soft": "#f5edda",
+    "--bg-hover": "#ece1c8",
+    "--fg": "#5b4636",
+    "--fg-dim": "#9b8a74",
+    "--accent": "#b58900",
+    "--accent-soft": "rgba(181, 137, 0, 0.16)",
+    "--border": "#e3d5b8",
+    "--shadow": "rgba(91, 70, 54, 0.15)"
+  }
+}

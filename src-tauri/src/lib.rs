@@ -33,6 +33,26 @@ fn take_pending_files() -> Vec<String> {
     std::mem::take(&mut *PENDING_FILES.lock().unwrap())
 }
 
+/// 读取 exe 同级 themes 目录下的用户自定义主题（*.json），返回文件内容列表
+#[tauri::command]
+fn read_user_themes() -> Vec<String> {
+    let mut out = Vec::new();
+    let Ok(exe) = std::env::current_exe() else { return out };
+    let Some(dir) = exe.parent().map(|p| p.join("themes")) else {
+        return out;
+    };
+    let Ok(entries) = fs::read_dir(dir) else { return out };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) == Some("json") {
+            if let Ok(content) = fs::read_to_string(&path) {
+                out.push(content);
+            }
+        }
+    }
+    out
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // 首个实例：先缓存启动参数里的 md 文件
@@ -56,7 +76,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_text_file,
             write_text_file,
-            take_pending_files
+            take_pending_files,
+            read_user_themes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
