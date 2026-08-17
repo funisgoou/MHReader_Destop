@@ -41,12 +41,97 @@ function isValidTheme(t: unknown): t is ThemeDef {
   );
 }
 
-/** 把 Typora 主题 CSS 的选择器映射到本应用编辑器 DOM */
-function transformTyporaCss(css: string): string {
-  return css
-    .replace(/#write\b/g, "#editor .milkdown .ProseMirror")
-    .replace(/\.typora-export\b/g, "#editor-host")
-    .replace(/\bbody\s*\{/g, "#editor-host {");
+/** Typora 主题作用域：编辑器内容区 */
+const EDITOR_SCOPE = "#editor .milkdown .ProseMirror";
+
+/** 把单个选择器映射到本应用 DOM；返回 null 表示丢弃 */
+function mapSelector(sel: string): string | null {
+  const s = sel.trim();
+  if (!s) return null;
+  // html/:root 保留全局（Typora 主题用 html 设整体背景/字号）
+  if (s === "html" || s === ":root") return ":root";
+  if (s.startsWith("html ")) return ":root " + s.slice(5);
+  // body 的字体/颜色/行高 → 编辑区
+  if (s === "body") return EDITOR_SCOPE;
+  if (s.startsWith("body")) return EDITOR_SCOPE + s.slice(4);
+  // Typora 编辑区容器
+  if (s.startsWith("#write")) return EDITOR_SCOPE + s.slice(6);
+  if (s.startsWith(".typora-export")) return EDITOR_SCOPE + s.slice(14);
+  // 伪元素（::selection、::-webkit-scrollbar 等）保留全局
+  if (s.startsWith("::")) return s;
+  // 其余一律收进编辑区作用域：Typora 应用自身的类在编辑区内匹配不到，自然失效
+  return `${EDITOR_SCOPE} ${s}`;
+}
+
+/** 处理一段 CSS（递归处理 @media/@supports 内部） */
+function processCssBlock(css: string): string {
+  let out = "";
+  let i = 0;
+  while (i < css.length) {
+    const brace = css.indexOf("{", i);
+    if (brace === -1) break;
+    const prelude = css.slice(i, brace).trim();
+    let depth = 1;
+    let j = brace + 1;
+    while (j < css.length && depth > 0) {
+      if (css[j] === "{") depth++;
+      else if (css[j] === "}") depth--;
+      j++;
+    }
+    const body = css.slice(brace + 1, j - 1);
+    if (/^@(font-face|keyframes|page)/i.test(prelude)) {
+      out += `${prelude}{${body}}`;
+    } else if (/^@(media|supports)/i.test(prelude)) {
+      out += `${prelude}{${processCssBlock(body)}}`;
+    } else if (prelude.startsWith("@")) {
+      // 丢弃未知 at 规则（Typora 的 @include-when-export 等）
+    } else {
+      const sels = prelude
+        .split(",")
+        .map(mapSelector)
+        .filter((x): x is string => !!x);
+      if (sels.length > 0) out += `${sels.join(",")}{${body}}`;
+    }
+    i = j;
+  }
+  return out;
+}
+
+/** 从主题 CSS 的 :root 变量中提取配色，映射到应用外框变量 */
+function extractChromeVars(css: string): Record<string, string> {
+  const m = /:root\s*\{([\s\S]*?)\}/.exec(css);
+  if (!m) return {};
+  const get = (k: string): string | null =>
+    new RegExp(`${k}\\s*:\\s*([^;]+)`).exec(m[1])?.[1]?.trim() ?? null;
+  const out: Record<string, string> = {};
+  const bg = get("--bg-color");
+  if (bg) {
+    out["--bg"] = bg;
+    out["--crepe-color-background"] = bg;
+  }
+  const side = get("--side-bar-bg-color");
+  if (side) {
+    out["--bg-soft"] = side;
+    out["--crepe-color-surface"] = side;
+  }
+  const accent = get("--active-file-border-color");
+  if (accent) {
+    out["--accent"] = accent;
+    out["--crepe-color-primary"] = accent;
+  }
+  const sel = get("--text-selection-bg-color");
+  if (sel) {
+    out["--accent-soft"] = sel;
+    out["--crepe-color-selected"] = sel;
+  }
+  return out;
+}
+
+/** 把 Typora 主题 CSS 转换为本应用可用的样式 */
+export function transformTyporaCss(css: string): string {
+  const noComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const noStatements = noComments.replace(/@[\w-]+[^;{}]*;/g, "");
+  return processCssBlock(noStatements);
 }
 
 /** 加载 exe 同级 themes/ 下的用户主题（.json / .css） */
@@ -63,12 +148,12 @@ async function loadUserThemes(): Promise<void> {
           /* 跳过格式错误的主题文件 */
         }
       } else if (filename.endsWith(".css")) {
-        // Typora CSS 主题：以默认主题的变量打底，CSS 全文注入
+        // Typora CSS 主题：默认变量打底 + 从 :root 提取外框配色 + CSS 转换注入
         const base = filename.replace(/\.css$/i, "");
         theme = {
           name: base.toLowerCase().replace(/\s+/g, "-"),
           label: base,
-          vars: { ...defaultTheme.vars },
+          vars: { ...defaultTheme.vars, ...extractChromeVars(raw) },
           css: transformTyporaCss(raw),
         };
       }
