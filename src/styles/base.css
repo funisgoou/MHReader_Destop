@@ -616,6 +616,24 @@ button {
   line-height: 1.2;
 }
 
+/* 代码块可读性：当前行号黑底修正 + 文本加深 */
+#editor .milkdown .cm-editor .cm-content {
+  color: var(--fg);
+}
+
+#editor .milkdown .cm-gutters {
+  color: var(--fg-dim) !important;
+}
+
+#editor .milkdown .cm-activeLine {
+  background-color: var(--accent-soft) !important;
+}
+
+#editor .milkdown .cm-activeLineGutter {
+  background-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
 #editor .milkdown .mermaid-diagram p,
 #editor .milkdown .mermaid-diagram div,
 #editor .milkdown .mermaid-diagram span {
